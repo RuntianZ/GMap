@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>GMap包样例代码</title>
+    <style type="text/css">
+        html, body{ height:100%; margin:0; padding:0;}
+        #mapDiv{ width:800px; height:600px; background-color:#EFF5FF;}
+    </style>
+    <script src="GMap.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var map;
+        window.onload = function () {
+            map = new GMap.Map('mapDiv');
+            map.addPoint('point1', 29, 115, new GMap.Label('point1'), null, [1,18], 3, 0, 0);
+            map.addPolyline('line', [[29,115], [25,130]], new GMap.Stroke(10, 0x000000, 1.0)); 
+            map.group('group1', ['point1', 'line']);
+        };
+        function addPoint2() {
+            map.addPoint('point2', 25, 130, new GMap.Label('point2'), null, [1,18], 3, 0, 0);
+        }
+
+        function hidePoint2() {
+        	map.hide('point2');
+        }
+
+        function showPoint2() {
+        	map.show('point2');
+        }
+
+        function addEvent() {
+        	map.addOverlayEvent('point1', {
+        		'onclick': function(event) {
+        			alert('You click ' + event['id']);
+        		}
+        	});
+        	map.addOverlayEvent('line', {
+        		'onclick': function(event) {
+        			alert('Your mouse is at ' + event['lat'] + ' and ' + event['lng']);
+        		}
+        	});
+        }
+
+        function removeGroup() {
+        	map.removeGroup('group1');
+        }
+
+        function addPoint1() {
+        	map.addPoint('point1', 29, 115, new GMap.Label('point1'), null, [1,18], 3, 0, 0);
+        }
+    </script>
+</head>
+<body>
+<div>请把这个文件放在Apache的文件目录下，然后在localhost上运行</div>
+<div id="mapDiv"></div>
+<input type="button" value="添加point2" onclick="addPoint2()"/>
+<input type="button" value="隐藏point2" onclick="hidePoint2()" />
+<input type="button" value="显示point2" onclick="showPoint2()" />
+<input type="button" value="给point1和line分别加上鼠标单击事件" onclick="addEvent()" />
+<input type="button" value="删除point1和line" onclick="removeGroup()" />
+<input type="button" value="添加point1" onclick="addPoint1()" />
+</body>
+</html>
