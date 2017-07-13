@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170713.1029
+ * @version 20170713.1211
  */
 
 var GMap = {
@@ -192,6 +192,23 @@ var GMap = {
                     }
                 }
         }
+
+        // 3.处理onremove类型事件
+        for (var i = 0; i < GMap.overlayRemoveEvent.length; ++i) {
+            GMap.eventBank[GMap.overlayRemoveEvent[i][0]]({
+               'lat': obj.lat, 'lng': obj.lng, 'id': GMap.overlayRemoveEvent[i][1]
+            });
+        }
+        for (var i = 0; i < GMap.groupRemoveEvent.length; ++i) {
+            if (GMap.groupFlagContains(GMap.groupRemoveEvent[i][0]))
+                continue;
+            GMap.groupFlag.push(GMap.groupRemoveEvent[i][0]);
+            GMap.eventBank[GMap.groupRemoveEvent[i][0]]({
+               'lat': obj.lat, 'lng': obj.lng, 'id': GMap.groupRemoveEvent[i][1]
+            });
+        }
+        GMap.overlayRemoveEvent = [];
+        GMap.groupRemoveEvent = [];
 
         if (!GMap.groupEventLock)
             GMap.groupFlag = [];
@@ -422,8 +439,11 @@ var GMap = {
         // 3.销毁绘制物的所有事件，并将onremove事件存放到临时数组中
         var objs = GMap.registeredEvents[mapId][id];
         if (objs) {
-            if (objs['onremove'])
-                GMap.overlayRemoveEvent = GMap.overlayRemoveEvent.concat(objs['onremove']);
+            if (objs['onremove']) {
+                for (j = 0; j < objs['onremove'].length; ++j) {
+                    GMap.overlayRemoveEvent.push([objs['onremove'][j], id]);
+                }
+            }
             GMap.registeredEvents[mapId][id] = [];
         }
 
@@ -434,9 +454,14 @@ var GMap = {
                 temp = GMap.getGroup(mapId, obj[j]);
                 objs = GMap.groupEvents[mapId][obj[j]]['onremove'];
                 if (objs) {
-                    for (i = 0; i < objs.length; ++i)
-                        if (!objs[i] in GMap.groupRemoveEvent)
-                            GMap.groupRemoveEvent.push(objs[i]);
+                    for (i = 0; i < objs.length; ++i) {
+                        var p = true;
+                        for (k = 0; k < GMap.groupRemoveEvent.length; ++k)
+                            if (GMap.groupRemoveEvent[k][0] === objs[i])
+                                p = false;
+                        if (p)
+                            GMap.groupRemoveEvent.push([objs[i], obj[j]]);
+                    }
                 }
                 k = 1;
                 while (k < temp.length && temp[k] !== id)
