@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170714.1436
+ * @version 20170714.1450
  */
 
 var GMap = {
@@ -40,7 +40,7 @@ var GMap = {
     defaultStroke: new shipxyMap.StrokeStyle(),
     defaultFill: new shipxyMap.FillStyle(),
     defaultFont: new shipxyMap.FontStyle(),
-    defaultPointUrl: 'point.png',
+    defaultPointUrl: 'http://www.runtianz.cn/img/point.png',
 
     mapLock: false,  // 地图锁
     onready: function() {},  // 忽视地图锁的指令
