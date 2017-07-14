@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170713.1211
+ * @version 20170714.1436
  */
 
 var GMap = {
@@ -1878,9 +1878,13 @@ var GMap = {
             case 44:  // run
             {
                 GMap.groupEventLock = true;
-                var ans = args[0]();
-                GMap.groupEventLock = false;
-                GMap.groupFlag = [];
+                var ans;
+                try {
+                    ans = args[0]();
+                } finally {
+                    GMap.groupEventLock = false;
+                    GMap.groupFlag = [];
+                }
                 return ans;
             }
         }
