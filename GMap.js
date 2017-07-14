@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170714.1450
+ * @version 20170714.1701
  */
 
 var GMap = {
@@ -166,7 +166,7 @@ var GMap = {
                     if (!err instanceof TypeError)
                         throw err;
                 }
-        }
+            }
 
 
         // 2.触发组合事件
@@ -191,12 +191,12 @@ var GMap = {
                             throw err;
                     }
                 }
-        }
+            }
 
         // 3.处理onremove类型事件
         for (var i = 0; i < GMap.overlayRemoveEvent.length; ++i) {
             GMap.eventBank[GMap.overlayRemoveEvent[i][0]]({
-               'lat': obj.lat, 'lng': obj.lng, 'id': GMap.overlayRemoveEvent[i][1]
+                'lat': obj.lat, 'lng': obj.lng, 'id': GMap.overlayRemoveEvent[i][1]
             });
         }
         for (var i = 0; i < GMap.groupRemoveEvent.length; ++i) {
@@ -204,7 +204,7 @@ var GMap = {
                 continue;
             GMap.groupFlag.push(GMap.groupRemoveEvent[i][0]);
             GMap.eventBank[GMap.groupRemoveEvent[i][0]]({
-               'lat': obj.lat, 'lng': obj.lng, 'id': GMap.groupRemoveEvent[i][1]
+                'lat': obj.lat, 'lng': obj.lng, 'id': GMap.groupRemoveEvent[i][1]
             });
         }
         GMap.overlayRemoveEvent = [];
@@ -357,7 +357,7 @@ var GMap = {
             GMap.rawEventBank[eventId] = function(event) {
                 if (GMap.eventRemoved[eventId])
                     return;
-                GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': event.latLng.lng, 'id': '__map__'});
+                GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': (event.latLng.lng < 0) ? (event.latLng.lng + 360) : event.latLng.lng, 'id': '__map__'});
             };
             GMap.maps[mapId].addEventListener(GMap.maps[mapId], ans, GMap.rawEventBank[eventId]);
         } else {
@@ -368,7 +368,7 @@ var GMap = {
             GMap.rawEventBank[eventId] = function(event) {
                 if (GMap.eventRemoved[eventId])
                     return;
-                GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': event.latLng.lng, 'id': objectId});
+                GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': (event.latLng.lng < 0) ? (event.latLng.lng + 360) : event.latLng.lng, 'id': objectId});
             };
             GMap.maps[mapId].addEventListener(GMap.getOverlay(mapId, objectId), ans, GMap.rawEventBank[eventId]);
         }
@@ -393,7 +393,7 @@ var GMap = {
         GMap.rawEventBank[eventId] = function(event) {
             if (GMap.eventRemoved[eventId])
                 return;
-            GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': event.latLng.lng, 'id': groupId});
+            GMap.eventBank[eventId]({'lat': event.latLng.lat, 'lng': (event.latLng.lng < 0) ? (event.latLng.lng + 360) : event.latLng.lng, 'id': groupId});
         };
         for (var i = 1; i < res.length; ++i) {
             GMap.maps[mapId].addEventListener(GMap.getOverlay(mapId, res[i]), ans, GMap.rawEventBank[eventId]);
@@ -541,8 +541,8 @@ var GMap = {
     /**
      * 在页面的一个元素内显示地图，并返回该地图的实例
      * @param objectId 必选项，用于显示地图的元素的id
-     * @param centerLat 可选项，地图中心点的纬度，范围为-90到90，默认为30，即北纬30度
-     * @param centerLng 可选项，地图中心点的经度，默认为120，即东经120度
+     * @param centerLat 可选项，地图中心点的纬度，范围为-90到90，正数表示北纬，默认为30，即北纬30度
+     * @param centerLng 可选项，地图中心点的经度，范围为0到360，小于180表示东经，默认为120，即东经120度
      * @param zoom 可选项，地图缩放级别，取值为1~18内的整数，值越大地图显示范围越小，默认为5
      * @param mapType 可选项，地图的类型，GMap.CMAP是海图,
      *        GMap.GOOGLEMAP是地图，GMap.GOOGLESATELLITE是卫星图，默认为GMap.GOOGLEMAP
@@ -1298,6 +1298,8 @@ var GMap = {
             case 3:  // getCenter
             {
                 var ans = GMap.maps[mapId].getCenter();
+                while (ans.lng < 0)
+                    ans.lng += 360;
                 return [ans.lat, ans.lng];
             }
 
@@ -1332,12 +1334,18 @@ var GMap = {
             case 9:  // fromLatLngToPoint
             {
                 var ans = GMap.maps[mapId].fromLatLngToPoint(new shipxyMap.LatLng(args[0], args[1]));
+                while (ans.x < 0)
+                    ans.x += 2050;
+                while (ans.x > 2050)
+                    ans.x -= 2050;
                 return [ans.x, ans.y];
             }
 
             case 10:  // fromPointToLatLng
             {
                 var ans = GMap.maps[mapId].fromPointToLatLng(new shipxyMap.Point(args[0], args[1]));
+                if (ans.lng < 0)
+                    ans.lng += 360;
                 return [ans.lat, ans.lng];
             }
 
