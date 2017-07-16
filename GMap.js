@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170714.1701
+ * @version 20170716.1652
  */
 
 var GMap = {
@@ -1051,6 +1051,27 @@ var GMap = {
             run: function(fun) {
                 // 指令序号44
                 return GMap.prepareEvent(this.id, 44, arguments);
+            },
+
+            /**
+             * 为等待队列提供if控制语句
+             * @param pred 必选项，一个返回布尔值的函数或者一个单个变量，判断条件
+             * @param clause 可选项，如果pred返回true则运行，可以传入null
+             * @param elseclause 可选项，如果pred返回false则运行，可以传入null
+             */
+            if: function(pred) {
+                // 指令序号45
+                GMap.prepareEvent(this.id, 45, arguments);
+            },
+
+            /**
+             * 为等待队列提供while控制语句
+             * @param pred 必选项，一个返回布尔值的函数或者一个单个变量，判断条件
+             * @param clause 必选项，一个要循环执行的函数体
+             */
+            while: function(pred, clause) {
+                // 指令序号46
+                GMap.prepareEvent(this.id, 46, arguments);
             }
         };
         ++GMap.mapcount;
@@ -1895,6 +1916,25 @@ var GMap = {
                 }
                 return ans;
             }
+
+            case 45:  // if
+            {
+                var pred = args[0];
+                if (typeof pred === 'function')
+                    pred = pred();
+                if (pred && args[1])
+                    args[1]();
+                else if (!pred && args[2])
+                    args[2]();
+                break;
+            }
+
+            case 46:  // while
+            {
+                while(args[0]())
+                    args[1]();
+                break;
+            }
         }
 
         return null;  // 默认情况下所有指令的返回结果为null
@@ -1963,7 +2003,9 @@ GMap.eventPool = [
     GMap.emptyEventPool,  // locateGroup
     GMap.emptyEventPool,  // addGroupEvent
     GMap.emptyEventPool,  // removeGroupEvent
-    GMap.emptyEventPool  // run
+    GMap.emptyEventPool,  // run
+    GMap.emptyEventPool,  // if
+    GMap.emptyEventPool  // while
 ];
 
 GMap.eventTypes = [
@@ -2011,5 +2053,7 @@ GMap.eventTypes = [
     [],  // locateGroup
     [],  // addGroupEvent
     [],  // removeGroupEvent
-    []  // run
+    [],  // run
+    [],  // if
+    []  // while
 ];
