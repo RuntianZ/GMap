@@ -2,7 +2,7 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170716.1652
+ * @version 20170718.1651
  */
 
 var GMap = {
@@ -221,6 +221,7 @@ var GMap = {
     registeredEvents: [],  // 所有被注册的事件监听器，一个包含字典的数组
     eventBank: [],  // 事件银行，储存所有事件的钩子
     rawEventBank: [],  // 储存flash需要使用的事件的银行，为flash中绑定的事件提供钩子
+    eventRecord: [],  // 记录所有事件的绑定
     eventRemoved: [],  // 一个布尔型数组，记录一个事件是否已被移除，true表示已移除，事件已作废
     emptyEventPool: function() {return [];},  // 空事件池
     mapEventPool: function() {return ['__map__'];},  // 只包含全局地图的事件池
@@ -239,10 +240,11 @@ var GMap = {
      * @param mapId 地图的编号
      * @param objectId 要注册的对象的id，全局地图的id是__map__
      * @param events 保存事件的字典
+     * @param clear 是否要清空原来已经注册的事件
      */
-    registerEvent: function(mapId, objectId, events) {
+    registerEvent: function(mapId, objectId, events, clear) {
         var objs = GMap.registeredEvents[mapId][objectId];
-        if (!objs) {
+        if (clear || !objs) {
             GMap.registeredEvents[mapId][objectId] = [];
             objs = GMap.registeredEvents[mapId][objectId];
         }
@@ -262,9 +264,17 @@ var GMap = {
      * @param mapId 地图的编号
      * @param groupId 要注册的组合的id
      * @param events 保存事件的字典
+     * @param clear 是否要清空原来已经注册的事件
      */
-    registerGroupEvent: function(mapId, groupId, events) {
+    registerGroupEvent: function(mapId, groupId, events, clear) {
         var objs = GMap.groupEvents[mapId][groupId];
+        if (clear) {
+            for (var key in objs)
+                for (var i = 0; i < objs[key].length; ++i)
+                    GMap.eventRemoved[objs[key][i]] = true;
+            GMap.groupEvents[mapId][groupId] = [];
+            objs = GMap.groupEvents[mapId][groupId];
+        }
         for (var key in events) {
             GMap.eventBank.push(events[key]);
             GMap.rawEventBank.push(GMap.emptyEvent);
@@ -273,6 +283,19 @@ var GMap = {
                 objs[key] = [];
             objs[key].push(GMap.eventBank.length - 1);
             GMap.registerSpecialGroupEvent(mapId, groupId, key, GMap.eventBank.length - 1);
+        }
+    },
+
+    /**
+     * 重新给一系列组合设置组内事件
+     * @param mapId 地图的编号
+     * @param arr 一个数组，包含一系列组合的id
+     */
+    resetGroupArray: function(mapId, arr, clear) {
+        for (var i = 0; i < arr.length; ++i) {
+            for (var j = 0; j < GMap.groupEventRecord[mapId][arr[i]].length; ++j) {
+                GMap.registerGroupEvent(mapId, arr[i], GMap.groupEventRecord[mapId][arr[i]][j], true);
+            }
         }
     },
 
@@ -409,6 +432,7 @@ var GMap = {
     overlayRemoveEvent: [],  // 一个临时存放绘制物删除事件的数组
     groupRemoveEvent: [],  // 一个临时存放组合删除事件的数组
     groupEventLock: false,  // 组合事件锁
+    groupEventRecord: [],  // 组合事件注册记录
 
     /**
      * 从一个地图中彻底销毁一个绘制物
@@ -446,6 +470,7 @@ var GMap = {
             }
             GMap.registeredEvents[mapId][id] = [];
         }
+        GMap.eventRecord[mapId][id] = [];
 
         // 4.销毁绘制物的组合绑定记录，并将组合中的onremove事件存放到临时数组中
         var obj = GMap.overlayBind[mapId][id];
@@ -470,6 +495,7 @@ var GMap = {
             }
             GMap.overlayBind[mapId][id] = [];
         }
+        GMap.groupEventRecord[mapId][id] = [];
     },
 
     /**
@@ -502,6 +528,7 @@ var GMap = {
             GMap.overlayBind[mapId][arr[i]].push(arr[0]);
         }  // 把每一个成员与组合绑定
         GMap.groupEvents[mapId][arr[0]] = [];  // 构造组合事件字典
+        GMap.groupEventRecord[mapId][arr[0]] = [];  // 构造记录
     },
 
     /**
@@ -535,6 +562,7 @@ var GMap = {
 
         // 2.从记录中删除组合
         GMap.overlayGroup[mapId].splice(i, 1);
+        GMap.groupEventRecord[mapId][id] = [];
         return true;
     },
 
@@ -1080,6 +1108,8 @@ var GMap = {
         GMap.overlayGroup.push([]);
         GMap.groupEvents.push([]);
         GMap.overlayBind.push({'__map__': []});
+        GMap.eventRecord.push([]);
+        GMap.groupEventRecord.push([]);
         return amap;
     },
 
@@ -1406,6 +1436,8 @@ var GMap = {
                 var ans = new shipxyMap.Marker(pointId, new shipxyMap.LatLng(args[1], args[2]), option);
                 GMap.maps[mapId].addOverlay(ans, true);
                 GMap.overlayBind[mapId][pointId] = [];
+                if (!GMap.eventRecord[mapId][pointId])
+                    GMap.eventRecord[mapId][pointId] = [];
                 return pointId;
             }
 
@@ -1445,6 +1477,8 @@ var GMap = {
                 var ans = new shipxyMap.Polyline(lineId, points, option);
                 GMap.maps[mapId].addOverlay(ans, true);
                 GMap.overlayBind[mapId][lineId] = [];
+                if (!GMap.eventRecord[mapId][lineId])
+                    GMap.eventRecord[mapId][lineId] = [];
                 return lineId;
             }
 
@@ -1488,6 +1522,8 @@ var GMap = {
                 var ans = new shipxyMap.Polygon(polygonId, points, option);
                 GMap.maps[mapId].addOverlay(ans, true);
                 GMap.overlayBind[mapId][polygonId] = [];
+                if (!GMap.eventRecord[mapId][polygonId])
+                GMap.eventRecord[mapId][polygonId] = [];
                 return polygonId;
             }
 
@@ -1631,6 +1667,9 @@ var GMap = {
                     GMap.maps[mapId].addOverlay(ans, true);
                     GMap.overlaysChanged = [ans.id];
                     objs.splice(i, 1);
+                    for (i = 0; i < GMap.eventRecord[mapId][args[0]].length; ++i)
+                        GMap.registerEvent(mapId, args[0], GMap.eventRecord[mapId][args[0]][i], (i === 0));
+                    GMap.resetGroupArray(mapId, GMap.overlayBind[mapId][args[0]]);
                     return true;
                 }
             }
@@ -1642,6 +1681,9 @@ var GMap = {
                 var ans = objs.length;
                 for (var i = 0; i < ans; ++i) {
                     GMap.maps[mapId].addOverlay(objs[i], true);
+                    for (var j = 0; j < GMap.eventRecord[mapId][objs[i].id].length; ++j)
+                        GMap.registerEvent(mapId, objs[i].id, GMap.eventRecord[mapId][objs[i].id][j], (j === 0));
+                    GMap.resetGroupArray(mapId, GMap.overlayBind[mapId][objs[i].id]);
                     GMap.overlaysChanged.push(objs[i].id);
                 }
                 GMap.hiddenOverlays[mapId][GMap.getTypeNumber(args[0])] = [];
@@ -1656,6 +1698,11 @@ var GMap = {
                     ans += GMap.hiddenOverlays[mapId][i].length;
                     for (var j = 0; j < GMap.hiddenOverlays[mapId][i].length; ++j) {
                         GMap.maps[mapId].addOverlay(GMap.hiddenOverlays[mapId][i][j], true);
+                        for (var k = 0;
+                             k < GMap.eventRecord[mapId][GMap.hiddenOverlays[mapId][i][j].id].length; ++k)
+                            GMap.registerEvent(mapId, GMap.hiddenOverlays[mapId][i][j].id,
+                                GMap.eventRecord[mapId][GMap.hiddenOverlays[mapId][i][j].id][k], (k === 0));
+                        GMap.resetGroupArray(mapId, GMap.overlayBind[mapId][GMap.hiddenOverlays[mapId][i][j].id]);
                         GMap.overlaysChanged.push(GMap.hiddenOverlays[mapId][i][j].id);
                     }
                     GMap.hiddenOverlays[mapId][i] = [];
@@ -1684,6 +1731,7 @@ var GMap = {
                 if (!ans)
                     throw new GMap.IdNotExistError();
                 GMap.registerEvent(mapId, args[0], args[1]);
+                GMap.eventRecord[mapId][args[0]].push(args[1]);
                 break;
             }
 
@@ -1691,6 +1739,8 @@ var GMap = {
             {
                 var ans = GMap.getOverlayByType(mapId, args[0]);
                 GMap.registerEventForArray(mapId, ans, args[1]);
+                for (var i = 0; i < ans.length; ++i)
+                    GMap.eventRecord[mapId][ans[i]].push(args[1]);
                 break;
             }
 
@@ -1700,6 +1750,8 @@ var GMap = {
                 ans = ans.concat(GMap.getOverlayByType(mapId, GMap.POLYLINE));
                 ans = ans.concat(GMap.getOverlayByType(mapId, GMap.POLYGON));
                 GMap.registerEventForArray(mapId, ans, args[0]);
+                for (var i = 0; i < ans.length; ++i)
+                    GMap.eventRecord[mapId][ans[i]].push(args[0]);
                 break;
             }
 
@@ -1857,6 +1909,9 @@ var GMap = {
                             ++j;
                         objs.splice(j, 1);
                         GMap.maps[mapId].addOverlay(ans, true);
+                        for (var j = 0; j < GMap.eventRecord[mapId][ans.id].length; ++j)
+                            GMap.registerEvent(mapId, ans.id, GMap.eventRecord[mapId][ans.id][j], (j === 0));
+                        GMap.resetGroupArray(mapId, GMap.overlayBind[mapId][ans.id]);
                         GMap.overlaysChanged.push(ans.id);
                         ++t;
                     }
@@ -1885,6 +1940,7 @@ var GMap = {
                 if (!ans)
                     throw new GMap.IdNotExistError();
                 GMap.registerGroupEvent(mapId, args[0], args[1]);
+                GMap.groupEventRecord[mapId][args[0]].push(args[1]);
                 break;
             }
 
