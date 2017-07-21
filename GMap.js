@@ -2,7 +2,12 @@
  * GMap类是利用shipxy.com提供的API开发的一个可以方便在页面中显示Google地图的类
  * 相比原生API这个类的使用更加方便
  * @author Runtian Zhai
- * @version 20170718.1651
+ * @version 20170721.1114
+ *
+ * This piece of code is under the protection of the MIT license.
+ * You should have received a copy of the license along with this file.
+ * If not, please visit https://github.com/RuntianZ/GMap/ and download
+ * license.txt in the repository.
  */
 
 var GMap = {
@@ -1395,8 +1400,10 @@ var GMap = {
             case 10:  // fromPointToLatLng
             {
                 var ans = GMap.maps[mapId].fromPointToLatLng(new shipxyMap.Point(args[0], args[1]));
-                if (ans.lng < 0)
+                while (ans.lng < 0)
                     ans.lng += 360;
+                while (ans.lng > 360)
+                    ans.lng -= 360;
                 return [ans.lat, ans.lng];
             }
 
